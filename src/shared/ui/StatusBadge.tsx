@@ -1,103 +1,125 @@
 'use client';
 
+import { useMemo, useEffect, useState } from 'react';
+import Lottie from 'lottie-react';
 import { COUPON_STATUS } from '../lib';
 import type { CouponStatus, TriggerStatus } from '../types';
+
+const LOTTIE_URLS = {
+  success: 'https://assets2.lottiefiles.com/packages/lf20_jbrw3hcz.json',
+  error: 'https://assets4.lottiefiles.com/packages/lf20_tl52xzvn.json',
+  warning: 'https://assets3.lottiefiles.com/packages/lf20_s2lryxtd.json',
+  loading: 'https://assets9.lottiefiles.com/packages/lf20_kxsd2ytq.json',
+  check: 'https://assets5.lottiefiles.com/packages/lf20_obhph3sh.json',
+};
 
 interface StatusBadgeProps {
   couponStatus: CouponStatus | null;
   triggerStatus: TriggerStatus;
 }
 
+function LottieFromUrl({ url, size = 100 }: { url: string; size?: number }) {
+  const [animationData, setAnimationData] = useState(null);
+
+  useEffect(() => {
+    fetch(url)
+      .then((res) => res.json())
+      .then(setAnimationData)
+      .catch(console.error);
+  }, [url]);
+
+  if (!animationData) {
+    return <div className="w-24 h-24 animate-pulse bg-white/20 rounded-full mx-auto mb-4" />;
+  }
+
+  return (
+    <div className="flex justify-center mb-4">
+      <Lottie
+        animationData={animationData}
+        loop={true}
+        autoplay={true}
+        style={{ width: size, height: size }}
+      />
+    </div>
+  );
+}
+
 export function StatusBadge({ couponStatus, triggerStatus }: StatusBadgeProps) {
-  if (!couponStatus) {
-    return (
-      <div className="text-center animate-fade-in">
-        <p className="text-6xl font-black bg-gradient-to-r from-sky-400 via-blue-500 to-purple-500 bg-clip-text text-transparent animate-pulse mb-4">
-          바코드를 스캔해주세요!
-        </p>
-        <p className="text-2xl text-sky-600 animate-bounce">
-          카메라에 바코드를 비춰주세요 📷
-        </p>
-      </div>
-    );
-  }
+  const statusConfig = useMemo(() => {
+    if (!couponStatus) return null;
 
-  if (couponStatus === COUPON_STATUS.INVALID) {
-    return (
-      <div className="text-center animate-shake relative">
-        <p className="text-6xl font-black bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 bg-clip-text text-transparent mb-4">
-          앗! 확인이 필요해요 😅
-        </p>
-        <p className="text-2xl text-rose-500">유효하지 않은 바코드예요</p>
-        <span className="absolute bottom-0 right-0 text-sm text-rose-400/60 font-mono">E001</span>
-      </div>
-    );
-  }
+    if (couponStatus === COUPON_STATUS.INVALID) {
+      return {
+        lottieUrl: LOTTIE_URLS.error,
+        bgColor: 'bg-white/90',
+        title: '유효하지 않은 바코드',
+        titleColor: 'text-red-500',
+        subtitle: '다시 확인해주세요',
+        subtitleColor: 'text-gray-600',
+      };
+    }
 
-  if (couponStatus === COUPON_STATUS.ALREADY_USED) {
-    return (
-      <div className="text-center animate-shake relative">
-        <p className="text-6xl font-black bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 bg-clip-text text-transparent mb-4">
-          이미 사용했어요! 🎫
-        </p>
-        <p className="text-2xl text-amber-500">이 바코드는 이미 사용된 바코드예요</p>
-        <span className="absolute bottom-0 right-0 text-sm text-amber-400/60 font-mono">E002</span>
-      </div>
-    );
-  }
+    if (couponStatus === COUPON_STATUS.ALREADY_USED) {
+      return {
+        lottieUrl: LOTTIE_URLS.warning,
+        bgColor: 'bg-white/90',
+        title: '이미 사용된 바코드',
+        titleColor: 'text-amber-500',
+        subtitle: '이 바코드는 이미 사용되었어요',
+        subtitleColor: 'text-gray-600',
+      };
+    }
 
-  if (couponStatus === COUPON_STATUS.VALID_AND_REDEEMED) {
-    const triggerMessages: Record<TriggerStatus, {
-      gradient: string;
-      subColor: string;
-      title: string;
-      subtitle: string;
-      animation: string;
-      code?: string;
-    }> = {
-      idle: {
-        gradient: 'from-emerald-400 via-teal-500 to-cyan-500',
-        subColor: 'text-emerald-600',
-        title: '확인 완료! ✨',
-        subtitle: '잠시만 기다려주세요',
-        animation: 'animate-pulse'
-      },
-      sending: {
-        gradient: 'from-violet-500 via-purple-500 to-fuchsia-500',
-        subColor: 'text-violet-600',
-        title: '카드 출력 중... 🎴',
-        subtitle: '조금만 기다려주세요!',
-        animation: 'animate-spin-slow'
-      },
-      success: {
-        gradient: 'from-pink-500 via-rose-500 to-red-400',
-        subColor: 'text-pink-600',
-        title: '포토카드 발급 완료! 🎉',
-        subtitle: '아래에서 카드를 받아가세요',
-        animation: 'animate-bounce'
-      },
-      failed: {
-        gradient: 'from-emerald-400 via-teal-500 to-cyan-500',
-        subColor: 'text-emerald-600',
-        title: '바코드 확인 완료! ✅',
-        subtitle: 'ESP32 연결 후 다시 스캔해주세요',
-        animation: '',
-        code: 'E003'
-      },
-    };
+    if (couponStatus === COUPON_STATUS.VALID_AND_REDEEMED) {
+      const configs: Record<TriggerStatus, typeof statusConfig> = {
+        idle: {
+          lottieUrl: LOTTIE_URLS.check,
+          bgColor: 'bg-emerald-500',
+          title: '확인 완료!',
+          titleColor: 'text-white',
+          subtitle: '잠시만 기다려주세요',
+          subtitleColor: 'text-white/80',
+        },
+        sending: {
+          lottieUrl: LOTTIE_URLS.loading,
+          bgColor: 'bg-violet-500',
+          title: '카드 출력 중...',
+          titleColor: 'text-white',
+          subtitle: '조금만 기다려주세요!',
+          subtitleColor: 'text-white/80',
+        },
+        success: {
+          lottieUrl: LOTTIE_URLS.success,
+          bgColor: 'bg-pink-500',
+          title: '포토카드 발급 완료!',
+          titleColor: 'text-white',
+          subtitle: '아래에서 카드를 받아가세요',
+          subtitleColor: 'text-white/80',
+        },
+        failed: {
+          lottieUrl: LOTTIE_URLS.check,
+          bgColor: 'bg-white/90',
+          title: '바코드 확인 완료',
+          titleColor: 'text-gray-800',
+          subtitle: 'ESP32 연결 후 다시 스캔해주세요',
+          subtitleColor: 'text-gray-600',
+        },
+      };
+      return configs[triggerStatus];
+    }
 
-    const { gradient, subColor, title, subtitle, animation, code } = triggerMessages[triggerStatus];
+    return null;
+  }, [couponStatus, triggerStatus]);
 
-    return (
-      <div className="text-center animate-fade-in relative">
-        <p className={`text-5xl font-black bg-gradient-to-r ${gradient} bg-clip-text text-transparent mb-4 ${animation}`}>
-          {title}
-        </p>
-        <p className={`text-2xl ${subColor}`}>{subtitle}</p>
-        {code && <span className={`absolute bottom-0 right-0 text-sm ${subColor}/60 font-mono`}>{code}</span>}
-      </div>
-    );
-  }
+  if (!statusConfig) return null;
 
-  return null;
+  const { lottieUrl, bgColor, title, titleColor, subtitle, subtitleColor } = statusConfig;
+
+  return (
+    <div className={`${bgColor} rounded-2xl px-8 py-6 shadow-lg text-center`}>
+      <LottieFromUrl url={lottieUrl} />
+      <p className={`text-2xl font-bold ${titleColor} mb-2`}>{title}</p>
+      <p className={subtitleColor}>{subtitle}</p>
+    </div>
+  );
 }

@@ -4,7 +4,9 @@
 
 ## 심층 문서
 
+- `docs/SYSTEM_OVERVIEW.md`
 - `docs/PROJECT_GUIDE.md`
+- `docs/HARDWARE_WIRING_GUIDE.md`
 
 ## 개요
 
@@ -24,7 +26,7 @@
 | Frontend | Next.js 16, React 19, TypeScript |
 | Styling | Tailwind CSS 4 |
 | Database | MongoDB (Mongoose) |
-| Barcode | @zxing/library |
+| Barcode | @zxing/browser (ZXing) |
 | Hardware | ESP32, Web Bluetooth API |
 
 ## 시스템 요구사항
@@ -120,21 +122,16 @@ photo-card-app/
 │   ├── app/
 │   │   ├── api/coupons/validate/   # 쿠폰 검증 API
 │   │   ├── layout.tsx
-│   │   └── page.tsx                # 메인 페이지
-│   ├── components/
-│   │   ├── BarcodeTab.tsx          # 바코드 리더 탭
-│   │   ├── BLEConnection.tsx       # BLE 연결 UI
-│   │   ├── CameraTab.tsx           # 카메라 스캔 탭
-│   │   └── StatusBadge.tsx         # 상태 표시
-│   ├── hooks/
-│   │   ├── useBarcodeScanner.ts    # 바코드 스캐너 훅
-│   │   └── useBLE.ts               # BLE 연결 훅
-│   ├── lib/
-│   │   ├── constants.ts            # 상수 정의
-│   │   ├── models/coupon.ts        # Mongoose 모델
-│   │   └── mongodb.ts              # DB 연결
-│   └── types/
-│       └── index.ts                # 타입 정의
+│   │   └── page.tsx                # 메인 페이지(오케스트레이션)
+│   ├── features/
+│   │   ├── ble-connection/         # Web Bluetooth 연결/트리거
+│   │   └── coupon-scan/            # 카메라/바코드리더 스캔
+│   ├── entities/
+│   │   └── coupon/                 # 쿠폰 도메인 모델(Mongoose)
+│   └── shared/
+│       ├── lib/                    # 상수/DB 등 공용 유틸
+│       ├── types/                  # 공용 타입
+│       └── ui/                     # 공용 UI
 ├── esp32/
 │   └── photo_card_trigger.ino      # ESP32 펌웨어
 ├── scripts/

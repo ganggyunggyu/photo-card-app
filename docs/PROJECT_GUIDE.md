@@ -2,6 +2,8 @@
 
 이 문서는 `photo-card-app`의 **현재 구현 구조**를 기준으로 동작 흐름, 핵심 모듈, 운영/개발 포인트, 그리고 **향후 구현 방향(로드맵)**을 정리한다.
 
+상위 개요(하드웨어/소프트웨어 전체 흐름): `docs/SYSTEM_OVERVIEW.md`
+
 ## 1) 시스템 한 줄 요약
 
 쿠폰 바코드를 스캔하면 `/api/coupons/validate`에서 **쿠폰을 원자적으로 사용 처리**하고, 성공 시 Web Bluetooth로 ESP32에 `PRINT`를 보내 **포토카드 머신(릴레이)을 트리거**한다.
@@ -12,17 +14,17 @@
   - 로컬 네트워크(예: 태블릿/노트북에서 `192.168.x.x:3000` 접근) 테스트는 `npm run dev:https`를 권장한다.
 - 카메라 접근은 브라우저 권한이 필요하다.
 - 권장 브라우저: Chrome/Edge 계열 (Web Bluetooth 지원)
-- `next.config.ts`의 `allowedDevOrigins`는 개발 중 로컬 네트워크에서 접근하는 상황을 고려해 `192.168.0.*`, `192.168.1.*`, `localhost:*`를 허용한다.
+- `next.config.ts`의 `allowedDevOrigins`는 개발 중 로컬 네트워크에서 접근하는 상황을 고려해 `http(s)://192.168.0.*`, `http(s)://192.168.1.*`, `http(s)://localhost:*`를 허용한다.
 
 ## 3) 현재 구현 플로우(데이터/상태 흐름)
 
 ### 3-1. 시퀀스(현재 코드 기준)
 
-1. `src/components/CameraTab.tsx`가 카메라 스트림에서 바코드를 감지 → `onScan(code)` 호출
+1. `src/features/coupon-scan/ui/CameraTab.tsx`가 카메라 스트림에서 바코드를 감지 → `onScan(code)` 호출
 2. `src/app/page.tsx`의 `handleScan`이 `/api/coupons/validate`에 `POST` 요청
 3. `src/app/api/coupons/validate/route.ts`가 MongoDB에서 쿠폰을 조회/갱신
    - **핵심: `isUsed=false`인 문서만 찾아 `isUsed=true`로 바꾸는 원자적 업데이트**
-4. 응답이 `VALID_AND_REDEEMED`이고 BLE 연결이 되어 있으면 `src/hooks/useBLE.ts`가 `PRINT`를 write
+4. 응답이 `VALID_AND_REDEEMED`이고 BLE 연결이 되어 있으면 `src/features/ble-connection/hooks/useBLE.ts`가 `PRINT`를 write
 5. ESP32(`esp32/photo_card_trigger.ino`)가 `PRINT` 수신 → 릴레이를 짧게 ON/OFF → (옵션) `DONE` notify
 
 ### 3-2. 상태 머신(현재 UI 기준)
@@ -38,25 +40,25 @@
   - 키오스크 메인 화면(카메라 스캔 + 쿠폰 검증 + BLE 트리거까지 한 화면에서 orchestrate)
 - `src/app/api/coupons/validate/route.ts`
   - 쿠폰 검증/사용 처리 API (핵심 비즈니스 로직)
-- `src/lib/mongodb.ts`
+- `src/shared/lib/mongodb.ts`
   - Next dev 환경을 고려한 Mongoose 커넥션 캐시(`global.mongooseCache`)
-- `src/lib/models/coupon.ts`
+- `src/entities/coupon/model/coupon.ts`
   - Coupon 모델(유일키: `couponNumber`)
-- `src/hooks/useBLE.ts`
+- `src/features/ble-connection/hooks/useBLE.ts`
   - Web Bluetooth 연결 및 `PRINT` write
-- `src/components/CameraTab.tsx`
+- `src/features/coupon-scan/ui/CameraTab.tsx`
   - ZXing 기반 카메라 스캔(중복 스캔 방지: 2초 쿨다운)
 - `esp32/photo_card_trigger.ino`
   - BLE GATT Server, `PRINT` 수신 시 릴레이 트리거 + `DONE` notify
 
 참고:
-- `src/components/BarcodeTab.tsx`, `src/hooks/useBarcodeScanner.ts`, `src/components/BLEConnection.tsx`는 **현재 `page.tsx`에서 사용되지 않는다.** (향후 “USB 바코드 리더 모드/탭” 복원 가능)
+- `src/features/coupon-scan/ui/BarcodeTab.tsx`, `src/features/coupon-scan/hooks/useBarcodeScanner.ts`, `src/features/ble-connection/ui/BLEConnection.tsx`는 **현재 `page.tsx`에서 사용되지 않는다.** (향후 “USB 바코드 리더 모드/탭” 복원 가능)
 
 ## 5) DB 모델/동시성(쿠폰 중복 사용 방지)
 
 ### 5-1. Coupon 모델 의미
 
-`src/lib/models/coupon.ts` 기준:
+`src/entities/coupon/model/coupon.ts` 기준:
 
 - `couponNumber`: 쿠폰 식별자(바코드로 들어오는 값)
 - `isUsed`: 사용 여부
@@ -74,7 +76,7 @@
 
 ## 6) BLE 프로토콜(웹 ↔ ESP32)
 
-- UUID는 `src/lib/constants.ts`와 `esp32/photo_card_trigger.ino`가 동일해야 한다.
+- UUID는 `src/shared/lib/constants.ts`와 `esp32/photo_card_trigger.ino`가 동일해야 한다.
   - Service: `BLE_SERVICE_UUID`
   - Write: `BLE_WRITE_CHAR_UUID`
   - Notify: `BLE_NOTIFY_CHAR_UUID` (ESP32는 `DONE` notify를 보냄)

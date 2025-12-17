@@ -12,13 +12,13 @@
 
 ## 필수 컨벤션
 
-- **절대경로 import만 사용**: `@/*` → `src/*`
+- **절대경로 import만 사용**: `@/*` → `src/*` (추가 alias: `@shared/*`, `@entities/*`, `@features/*`)
 - **className은 `cn()`로만 조합** (Tailwind + 조건부 포함)
 - **React Fragment는 `React.Fragment`만 사용** (단축 `<>` 금지)
 - **이모지 지양**: UI 피드백은 아이콘 라이브러리로 대체 (예: `lucide-react`)
 - **구조분해 할당 우선** (불가피할 때만 예외)
 
-> 참고: 현재 코드베이스는 `components/`, `hooks/`, `lib/` 중심으로 구성되어 있고 `cn()`, TanStack Query, Jotai가 아직 들어가 있지 않다. 신규 작업부터 점진적으로 도입한다.
+> 참고: 현재 코드는 `features/`, `entities/`, `shared/` 중심으로 점진 전환 중이며, `cn()`, TanStack Query, Jotai는 신규 작업부터 도입한다.
 
 ## 상태관리 / 데이터 패칭
 
@@ -47,7 +47,7 @@ src/
 
 ## BLE/ESP32 작업 규칙
 
-- UUID/명령은 `src/lib/constants.ts`와 `esp32/photo_card_trigger.ino`를 **항상 같이 맞춘다.**
+- UUID/명령은 `src/shared/lib/constants.ts`와 `esp32/photo_card_trigger.ino`를 **항상 같이 맞춘다.**
 - Web Bluetooth는 **HTTPS 또는 localhost**에서만 동작한다.
   - 로컬 네트워크 디바이스 테스트는 `npm run dev:https`를 우선 사용한다.
 
@@ -57,4 +57,3 @@ src/
 - `npm run build` / `npm run start`
 - `npm run lint`
 - `npm run seed`
-

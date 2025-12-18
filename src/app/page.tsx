@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react';
 import { CameraTab } from '@features/coupon-scan';
 import { StatusBadge } from '@shared/ui';
-import { useBLE } from '@features/ble-connection';
+import { useESP32 } from '@features/esp-connection';
 import { COUPON_STATUS } from '@shared/lib';
 import type { CouponStatus, TriggerStatus, ValidateResponse } from '@shared/types';
 
@@ -12,7 +12,18 @@ export default function Home() {
   const [couponStatus, setCouponStatus] = useState<CouponStatus | null>(null);
   const [triggerStatus, setTriggerStatus] = useState<TriggerStatus>('idle');
   const [isLocked, setIsLocked] = useState(false);
-  const { connectionStatus, connect, disconnect, sendPrintCommand, errorMessage } = useBLE();
+  const [showIpInput, setShowIpInput] = useState(false);
+  const [ipInput, setIpInput] = useState('');
+
+  const {
+    connectionStatus,
+    espIp,
+    setEspIp,
+    connect,
+    disconnect,
+    sendDispenseCommand,
+    errorMessage,
+  } = useESP32();
 
   const handleScan = useCallback(
     async (code: string) => {
@@ -33,7 +44,7 @@ export default function Home() {
         if (data.status === COUPON_STATUS.VALID_AND_REDEEMED) {
           if (connectionStatus === 'connected') {
             setTriggerStatus('sending');
-            const success = await sendPrintCommand();
+            const success = await sendDispenseCommand();
             setTriggerStatus(success ? 'success' : 'failed');
           } else {
             setTriggerStatus('failed');
@@ -44,8 +55,15 @@ export default function Home() {
         setCouponStatus(COUPON_STATUS.INVALID);
       }
     },
-    [connectionStatus, sendPrintCommand]
+    [connectionStatus, sendDispenseCommand]
   );
+
+  const handleIpSave = () => {
+    if (ipInput.trim()) {
+      setEspIp(ipInput.trim());
+    }
+    setShowIpInput(false);
+  };
 
   return (
     <div className="h-screen w-screen overflow-hidden flex flex-col bg-linear-to-b from-sky-200 via-sky-100 to-emerald-100">
@@ -63,28 +81,24 @@ export default function Home() {
       {/* 터치 잠금 오버레이 - 카메라 영역 제외하고 전부 차단 */}
       {isLocked && (
         <>
-          {/* 상단 (버튼 제외) */}
           <div
             className="fixed top-0 left-40 right-0 h-16 z-9999"
             onTouchStart={(e) => e.preventDefault()}
             onTouchMove={(e) => e.preventDefault()}
             onContextMenu={(e) => e.preventDefault()}
           />
-          {/* 좌측 */}
           <div
             className="fixed top-16 left-0 w-[30vw] h-[25vh] z-9999"
             onTouchStart={(e) => e.preventDefault()}
             onTouchMove={(e) => e.preventDefault()}
             onContextMenu={(e) => e.preventDefault()}
           />
-          {/* 우측 */}
           <div
             className="fixed top-16 right-0 w-[30vw] h-[25vh] z-9999"
             onTouchStart={(e) => e.preventDefault()}
             onTouchMove={(e) => e.preventDefault()}
             onContextMenu={(e) => e.preventDefault()}
           />
-          {/* 하단 전체 */}
           <div
             className="fixed top-[calc(4rem+25vh+1rem)] left-0 right-0 bottom-0 z-9999"
             onTouchStart={(e) => e.preventDefault()}
@@ -94,13 +108,51 @@ export default function Home() {
         </>
       )}
 
-      {/* ESP32 연결 버튼 - 우상단 */}
+      {/* ESP32 연결 영역 - 우상단 */}
       <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
         {errorMessage && (
           <span className="bg-red-100 text-red-600 px-3 py-1.5 rounded-full text-sm">
             {errorMessage}
           </span>
         )}
+
+        {/* IP 설정 모달 */}
+        {showIpInput && (
+          <div className="flex items-center gap-2 bg-white rounded-full px-3 py-1.5 shadow-lg">
+            <input
+              type="text"
+              value={ipInput}
+              onChange={(e) => setIpInput(e.target.value)}
+              placeholder="ESP32 IP"
+              className="w-36 px-2 py-1 text-sm border rounded"
+            />
+            <button
+              onClick={handleIpSave}
+              className="px-3 py-1 bg-blue-500 text-white text-sm rounded"
+            >
+              저장
+            </button>
+            <button
+              onClick={() => setShowIpInput(false)}
+              className="px-2 py-1 text-gray-500 text-sm"
+            >
+              취소
+            </button>
+          </div>
+        )}
+
+        {/* IP 표시 버튼 */}
+        <button
+          onClick={() => {
+            setIpInput(espIp);
+            setShowIpInput(!showIpInput);
+          }}
+          className="px-3 py-2 bg-gray-100 text-gray-600 rounded-full text-xs font-mono"
+        >
+          {espIp}
+        </button>
+
+        {/* 연결 버튼 */}
         <button
           onClick={connectionStatus === 'connected' ? disconnect : connect}
           disabled={connectionStatus === 'connecting'}

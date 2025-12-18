@@ -194,3 +194,4 @@ npm run seed     # 쿠폰 데이터 시드
 ## 라이선스
 
 MIT
+# photo-card-app

@@ -1,24 +1,24 @@
 /*
- * ESP32 Wi-Fi HTTP Server - Photo Card Trigger
+ * ESP32 BLE - Photo Card Trigger
  *
- * HTTP POST /dispense 요청을 받으면 릴레이를 트리거합니다.
+ * BLE로 "DISPENSE" 명령을 받으면 릴레이를 트리거합니다.
  *
  * 핀 연결:
  * - GPIO 2: 내장 LED (테스트용)
  * - GPIO 4: 릴레이 모듈 (실제 운영용)
  *
  * 사용법:
- * 1. Wi-Fi SSID/비밀번호 수정
- * 2. 업로드 후 시리얼 모니터에서 IP 확인
- * 3. curl -X POST http://[IP]/dispense 로 테스트
+ * 1. 업로드 후 BLE 스캔 앱에서 "PhotoCard" 찾기
+ * 2. 연결 후 "DISPENSE" 문자열 전송
  */
 
-#include <WiFi.h>
-#include <WebServer.h>
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <BLE2902.h>
 
-// Wi-Fi 설정 - 여기 수정!
-const char* ssid = "U+Net90F0_5G";
-const char* password = "#6PF3CCB8B";
+#define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
+#define CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
 
 // GPIO 핀 설정
 const int LED_PIN = 2;
@@ -31,151 +31,135 @@ const unsigned long TRIGGER_DURATION_MS = 300;
 const unsigned long COOLDOWN_MS = 2000;
 unsigned long lastTriggerTime = 0;
 
-// HTTP 서버 (포트 80)
-WebServer server(80);
+BLEServer* pServer = NULL;
+BLECharacteristic* pCharacteristic = NULL;
+bool deviceConnected = false;
 
 void triggerOutput() {
   Serial.println("Triggering output...");
 
-  // LED와 릴레이 ON
   digitalWrite(LED_PIN, HIGH);
   digitalWrite(RELAY_PIN, HIGH);
 
   delay(TRIGGER_DURATION_MS);
 
-  // LED와 릴레이 OFF
   digitalWrite(LED_PIN, LOW);
   digitalWrite(RELAY_PIN, LOW);
 
   Serial.println("Trigger complete");
 }
 
-// CORS 헤더 추가
-void setCorsHeaders() {
-  server.sendHeader("Access-Control-Allow-Origin", "*");
-  server.sendHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  server.sendHeader("Access-Control-Allow-Headers", "Content-Type");
-}
-
-// OPTIONS 요청 처리 (CORS preflight)
-void handleOptions() {
-  setCorsHeaders();
-  server.send(204);
-}
-
-// POST /dispense - 배출 트리거
-void handleDispense() {
-  setCorsHeaders();
-
-  unsigned long now = millis();
-
-  // 쿨다운 체크
-  if (now - lastTriggerTime < COOLDOWN_MS) {
-    Serial.println("Cooldown active, ignoring request");
-    server.send(429, "application/json", "{\"success\":false,\"error\":\"cooldown\"}");
-    return;
+class MyServerCallbacks: public BLEServerCallbacks {
+  void onConnect(BLEServer* pServer) {
+    deviceConnected = true;
+    Serial.println("Client connected!");
+    // 연결 알림 - LED 2번 깜빡
+    for (int i = 0; i < 2; i++) {
+      digitalWrite(LED_PIN, HIGH);
+      delay(100);
+      digitalWrite(LED_PIN, LOW);
+      delay(100);
+    }
   }
 
-  lastTriggerTime = now;
-  triggerOutput();
+  void onDisconnect(BLEServer* pServer) {
+    deviceConnected = false;
+    Serial.println("Client disconnected");
+    // 재광고 시작
+    pServer->startAdvertising();
+  }
+};
 
-  server.send(200, "application/json", "{\"success\":true}");
-  Serial.println("Dispense request handled");
-}
+class MyCallbacks: public BLECharacteristicCallbacks {
+  void onWrite(BLECharacteristic *pCharacteristic) {
+    String value = pCharacteristic->getValue();
 
-// GET / - 상태 확인
-void handleRoot() {
-  setCorsHeaders();
+    if (value.length() > 0) {
+      Serial.print("Received: ");
+      Serial.println(value.c_str());
 
-  String json = "{";
-  json += "\"status\":\"ready\",";
-  json += "\"uptime\":" + String(millis() / 1000) + ",";
-  json += "\"ip\":\"" + WiFi.localIP().toString() + "\"";
-  json += "}";
+      if (value == "DISPENSE") {
+        unsigned long now = millis();
 
-  server.send(200, "application/json", json);
-}
+        if (now - lastTriggerTime < COOLDOWN_MS) {
+          Serial.println("Cooldown active");
+          pCharacteristic->setValue("COOLDOWN");
+          pCharacteristic->notify();
+          return;
+        }
 
-// GET /health - 헬스체크
-void handleHealth() {
-  setCorsHeaders();
-  server.send(200, "application/json", "{\"ok\":true}");
-}
+        lastTriggerTime = now;
+        triggerOutput();
 
-// 404 처리
-void handleNotFound() {
-  setCorsHeaders();
-  server.send(404, "application/json", "{\"error\":\"not_found\"}");
-}
+        pCharacteristic->setValue("OK");
+        pCharacteristic->notify();
+      }
+    }
+  }
+};
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("\n\nStarting Wi-Fi HTTP Server...");
+  Serial.println("\n\nStarting BLE Server...");
 
-  // GPIO 설정
   pinMode(LED_PIN, OUTPUT);
   pinMode(RELAY_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
   digitalWrite(RELAY_PIN, LOW);
 
-  // Wi-Fi 연결
-  Serial.print("Connecting to Wi-Fi: ");
-  Serial.println(ssid);
+  // BLE 초기화
+  BLEDevice::init("PhotoCard");
+  pServer = BLEDevice::createServer();
+  pServer->setCallbacks(new MyServerCallbacks());
 
-  WiFi.begin(ssid, password);
+  // 서비스 생성
+  BLEService *pService = pServer->createService(SERVICE_UUID);
 
-  int attempts = 0;
-  while (WiFi.status() != WL_CONNECTED && attempts < 30) {
-    delay(500);
-    Serial.print(".");
-    attempts++;
-  }
+  // Characteristic 생성
+  pCharacteristic = pService->createCharacteristic(
+    CHARACTERISTIC_UUID,
+    BLECharacteristic::PROPERTY_READ |
+    BLECharacteristic::PROPERTY_WRITE |
+    BLECharacteristic::PROPERTY_NOTIFY
+  );
 
-  if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("\nWi-Fi connection failed!");
-    Serial.println("Check SSID and password");
-    return;
-  }
+  pCharacteristic->addDescriptor(new BLE2902());
+  pCharacteristic->setCallbacks(new MyCallbacks());
+  pCharacteristic->setValue("READY");
 
-  Serial.println("\nWi-Fi connected!");
-  Serial.print("IP Address: ");
-  Serial.println(WiFi.localIP());
+  // 서비스 시작
+  pService->start();
 
-  // LED 깜빡여서 연결 성공 알림
+  // 광고 시작
+  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+  pAdvertising->addServiceUUID(SERVICE_UUID);
+  pAdvertising->setScanResponse(true);
+  pAdvertising->setMinPreferred(0x06);
+  pAdvertising->setMinPreferred(0x12);
+  BLEDevice::startAdvertising();
+
+  Serial.println("\n=== BLE Server Ready ===");
+  Serial.println("Device name: PhotoCard");
+  Serial.println("Send 'DISPENSE' to trigger");
+  Serial.println("========================\n");
+
+  // 준비 완료 - LED 3번 깜빡
   for (int i = 0; i < 3; i++) {
     digitalWrite(LED_PIN, HIGH);
     delay(100);
     digitalWrite(LED_PIN, LOW);
     delay(100);
   }
-
-  // HTTP 라우트 설정
-  server.on("/", HTTP_GET, handleRoot);
-  server.on("/health", HTTP_GET, handleHealth);
-  server.on("/dispense", HTTP_POST, handleDispense);
-  server.on("/dispense", HTTP_OPTIONS, handleOptions);
-  server.onNotFound(handleNotFound);
-
-  // 서버 시작
-  server.begin();
-
-  Serial.println("\n=== HTTP Server Ready ===");
-  Serial.println("Endpoints:");
-  Serial.println("  GET  /         - Status");
-  Serial.println("  GET  /health   - Health check");
-  Serial.println("  POST /dispense - Trigger dispense");
-  Serial.println("========================\n");
 }
 
 void loop() {
-  server.handleClient();
-
-  // Wi-Fi 재연결
-  if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("Wi-Fi disconnected, reconnecting...");
-    WiFi.reconnect();
-    delay(5000);
+  // 연결 유지를 위한 keepalive (30초마다)
+  static unsigned long lastKeepAlive = 0;
+  if (deviceConnected && millis() - lastKeepAlive > 30000) {
+    lastKeepAlive = millis();
+    if (pCharacteristic) {
+      pCharacteristic->notify();
+    }
   }
-
-  delay(2);
+  delay(10);
 }

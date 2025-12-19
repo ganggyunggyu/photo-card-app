@@ -1,63 +1,141 @@
-#include <WiFi.h>
-#include <WebServer.h>
+/*
+ * ESP32 BLE - Photo Card Trigger
+ *
+ * BLE로 "DISPENSE" 명령을 받으면 릴레이를 트리거합니다.
+ */
 
-const char* ssid = "U+Net90F0_5G";
-const char* password = "#6PF3CCB8B";
+#include <Arduino.h>
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <BLE2902.h>
 
-WebServer server(80);
+#define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
+#define CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
 
-static const int RELAY_PIN = 4;
-static const unsigned long PULSE_MS = 200;
-static const unsigned long COOLDOWN_MS = 1500;
+const int LED_PIN = 2;
+const int RELAY_PIN = 4;
+const unsigned long TRIGGER_DURATION_MS = 300;
+const unsigned long COOLDOWN_MS = 2000;
 
-static unsigned long lastDispenseMs = 0;
+unsigned long lastTriggerTime = 0;
+BLEServer* pServer = NULL;
+BLECharacteristic* pCharacteristic = NULL;
+bool deviceConnected = false;
 
-void handleHealth() {
-  server.send(200, "application/json", "{\"ok\":true}");
-}
-
-void handleDispense() {
-  unsigned long now = millis();
-  if (now - lastDispenseMs < COOLDOWN_MS) {
-    server.send(429, "application/json", "{\"ok\":false,\"reason\":\"cooldown\"}");
-    return;
-  }
-  lastDispenseMs = now;
-
+void triggerOutput() {
+  Serial.println("Triggering output...");
+  digitalWrite(LED_PIN, HIGH);
   digitalWrite(RELAY_PIN, HIGH);
-  delay(PULSE_MS);
+  delay(TRIGGER_DURATION_MS);
+  digitalWrite(LED_PIN, LOW);
   digitalWrite(RELAY_PIN, LOW);
-
-  server.send(200, "application/json", "{\"ok\":true}");
+  Serial.println("Trigger complete");
 }
+
+class MyServerCallbacks: public BLEServerCallbacks {
+  void onConnect(BLEServer* pServer) {
+    deviceConnected = true;
+    Serial.println("Client connected!");
+    for (int i = 0; i < 2; i++) {
+      digitalWrite(LED_PIN, HIGH);
+      delay(100);
+      digitalWrite(LED_PIN, LOW);
+      delay(100);
+    }
+  }
+
+  void onDisconnect(BLEServer* pServer) {
+    deviceConnected = false;
+    Serial.println("Client disconnected");
+    pServer->startAdvertising();
+  }
+};
+
+class MyCallbacks: public BLECharacteristicCallbacks {
+  void onWrite(BLECharacteristic *pCharacteristic) {
+    std::string value = pCharacteristic->getValue();
+
+    if (value.length() > 0) {
+      Serial.print("Received: ");
+      Serial.println(value.c_str());
+
+      if (value == "DISPENSE") {
+        unsigned long now = millis();
+
+        if (now - lastTriggerTime < COOLDOWN_MS) {
+          Serial.println("Cooldown active");
+          pCharacteristic->setValue("COOLDOWN");
+          pCharacteristic->notify();
+          return;
+        }
+
+        lastTriggerTime = now;
+        triggerOutput();
+
+        pCharacteristic->setValue("OK");
+        pCharacteristic->notify();
+      }
+    }
+  }
+};
 
 void setup() {
+  Serial.begin(115200);
+  Serial.println("\n\nStarting BLE Server...");
+
+  pinMode(LED_PIN, OUTPUT);
   pinMode(RELAY_PIN, OUTPUT);
+  digitalWrite(LED_PIN, LOW);
   digitalWrite(RELAY_PIN, LOW);
 
-  Serial.begin(115200);
-  delay(300);
+  BLEDevice::init("PhotoCard");
+  pServer = BLEDevice::createServer();
+  pServer->setCallbacks(new MyServerCallbacks());
 
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
+  BLEService *pService = pServer->createService(SERVICE_UUID);
 
-  Serial.print("Connecting to WiFi");
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(200);
-    Serial.print(".");
+  pCharacteristic = pService->createCharacteristic(
+    CHARACTERISTIC_UUID,
+    BLECharacteristic::PROPERTY_READ |
+    BLECharacteristic::PROPERTY_WRITE |
+    BLECharacteristic::PROPERTY_NOTIFY
+  );
+
+  pCharacteristic->addDescriptor(new BLE2902());
+  pCharacteristic->setCallbacks(new MyCallbacks());
+  pCharacteristic->setValue("READY");
+
+  pService->start();
+
+  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+  pAdvertising->addServiceUUID(SERVICE_UUID);
+  pAdvertising->setScanResponse(true);
+  pAdvertising->setMinPreferred(0x06);
+  pAdvertising->setMinPreferred(0x12);
+  BLEDevice::startAdvertising();
+
+  Serial.println("\n=== BLE Server Ready ===");
+  Serial.println("Device name: PhotoCard");
+  Serial.println("Send 'DISPENSE' to trigger");
+  Serial.println("========================\n");
+
+  for (int i = 0; i < 3; i++) {
+    digitalWrite(LED_PIN, HIGH);
+    delay(100);
+    digitalWrite(LED_PIN, LOW);
+    delay(100);
   }
-  Serial.println();
-
-  Serial.print("ESP32 IP: ");
-  Serial.println(WiFi.localIP());
-
-  server.on("/health", HTTP_GET, handleHealth);
-  server.on("/dispense", HTTP_GET, handleDispense);
-  server.begin();
-
-  Serial.println("HTTP server started");
 }
 
 void loop() {
-  server.handleClient();
+  // 연결 유지를 위한 keepalive (30초마다)
+  static unsigned long lastKeepAlive = 0;
+  if (deviceConnected && millis() - lastKeepAlive > 30000) {
+    lastKeepAlive = millis();
+    if (pCharacteristic) {
+      pCharacteristic->notify();
+    }
+  }
+  delay(10);
 }

@@ -71,7 +71,15 @@ export function StatusBadge({ couponStatus, triggerStatus }: StatusBadgeProps) {
     }
 
     if (couponStatus === COUPON_STATUS.VALID_AND_REDEEMED) {
-      const configs: Record<TriggerStatus, typeof statusConfig> = {
+      type StatusConfig = {
+        lottieUrl: string;
+        bgColor: string;
+        title: string;
+        titleColor: string;
+        subtitle: string;
+        subtitleColor: string;
+      };
+      const configs: Record<TriggerStatus, StatusConfig> = {
         idle: {
           lottieUrl: LOTTIE_URLS.check,
           bgColor: 'bg-emerald-500',

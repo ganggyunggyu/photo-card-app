@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { CameraTab } from '@features/coupon-scan';
 import { StatusBadge } from '@shared/ui';
 import { useESP32 } from '@features/esp-connection';
@@ -12,62 +12,55 @@ export default function Home() {
   const [couponStatus, setCouponStatus] = useState<CouponStatus | null>(null);
   const [triggerStatus, setTriggerStatus] = useState<TriggerStatus>('idle');
   const [isLocked, setIsLocked] = useState(false);
-  const [showIpInput, setShowIpInput] = useState(false);
-  const [ipInput, setIpInput] = useState('');
 
-  const {
-    connectionStatus,
-    espIp,
-    setEspIp,
-    connect,
-    disconnect,
-    sendDispenseCommand,
-    errorMessage,
-  } = useESP32();
+  const { connectionStatus, connect, disconnect, sendDispenseCommand, errorMessage } = useESP32();
 
-  const handleScan = useCallback(
-    async (code: string) => {
-      setLastCode(code);
-      setCouponStatus(null);
-      setTriggerStatus('idle');
+  // stale closure 방지를 위한 ref
+  const connectionStatusRef = useRef(connectionStatus);
+  const sendDispenseCommandRef = useRef(sendDispenseCommand);
 
-      try {
-        const response = await fetch('/api/coupons/validate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ couponNumber: code }),
-        });
+  useEffect(() => {
+    connectionStatusRef.current = connectionStatus;
+  }, [connectionStatus]);
 
-        const data: ValidateResponse = await response.json();
-        setCouponStatus(data.status);
+  useEffect(() => {
+    sendDispenseCommandRef.current = sendDispenseCommand;
+  }, [sendDispenseCommand]);
 
-        if (data.status === COUPON_STATUS.VALID_AND_REDEEMED) {
-          if (connectionStatus === 'connected') {
-            setTriggerStatus('sending');
-            const success = await sendDispenseCommand();
-            setTriggerStatus(success ? 'success' : 'failed');
-          } else {
-            setTriggerStatus('failed');
-          }
+  const handleScan = useCallback(async (code: string) => {
+    setLastCode(code);
+    setCouponStatus(null);
+    setTriggerStatus('idle');
+
+    try {
+      const response = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ couponNumber: code }),
+      });
+
+      const data: ValidateResponse = await response.json();
+      setCouponStatus(data.status);
+
+      if (data.status === COUPON_STATUS.VALID_AND_REDEEMED) {
+        // ref를 통해 항상 최신 connectionStatus 참조
+        if (connectionStatusRef.current === 'connected') {
+          setTriggerStatus('sending');
+          const success = await sendDispenseCommandRef.current();
+          setTriggerStatus(success ? 'success' : 'failed');
+        } else {
+          setTriggerStatus('failed');
         }
-      } catch (error) {
-        console.error('Validation error:', error);
-        setCouponStatus(COUPON_STATUS.INVALID);
       }
-    },
-    [connectionStatus, sendDispenseCommand]
-  );
-
-  const handleIpSave = () => {
-    if (ipInput.trim()) {
-      setEspIp(ipInput.trim());
+    } catch (error) {
+      console.error('Validation error:', error);
+      setCouponStatus(COUPON_STATUS.INVALID);
     }
-    setShowIpInput(false);
-  };
+  }, []);
 
   return (
     <div className="h-screen w-screen overflow-hidden flex flex-col bg-linear-to-b from-sky-200 via-sky-100 to-emerald-100">
-      {/* 터치 잠금/해제 버튼 - 좌상단 (항상 최상단, 오버레이 위) */}
+      {/* 터치 잠금/해제 버튼 - 좌상단 */}
       <button
         onClick={() => setIsLocked(!isLocked)}
         style={{ zIndex: 99999 }}
@@ -78,7 +71,7 @@ export default function Home() {
         {isLocked ? '잠금 해제' : '터치 잠금'}
       </button>
 
-      {/* 터치 잠금 오버레이 - 카메라 영역 제외하고 전부 차단 */}
+      {/* 터치 잠금 오버레이 */}
       {isLocked && (
         <>
           <div
@@ -108,51 +101,33 @@ export default function Home() {
         </>
       )}
 
-      {/* ESP32 연결 영역 - 우상단 */}
-      <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+      {/* ESP32 BLE 연결 영역 - 우상단 */}
+      <div className="absolute top-4 right-4 z-20 flex flex-col items-end gap-2">
+        {/* 연결 상태 표시 */}
+        <div className="text-xs text-gray-500 bg-white/80 px-2 py-1 rounded">
+          상태: {connectionStatus}
+        </div>
+
         {errorMessage && (
-          <span className="bg-red-100 text-red-600 px-3 py-1.5 rounded-full text-sm">
+          <span className="bg-red-100 text-red-600 px-3 py-1.5 rounded-full text-sm max-w-xs text-right">
             {errorMessage}
           </span>
         )}
 
-        {/* IP 설정 모달 */}
-        {showIpInput && (
-          <div className="flex items-center gap-2 bg-white rounded-full px-3 py-1.5 shadow-lg">
-            <input
-              type="text"
-              value={ipInput}
-              onChange={(e) => setIpInput(e.target.value)}
-              placeholder="ESP32 IP"
-              className="w-36 px-2 py-1 text-sm border rounded"
-            />
-            <button
-              onClick={handleIpSave}
-              className="px-3 py-1 bg-blue-500 text-white text-sm rounded"
-            >
-              저장
-            </button>
-            <button
-              onClick={() => setShowIpInput(false)}
-              className="px-2 py-1 text-gray-500 text-sm"
-            >
-              취소
-            </button>
-          </div>
+        {/* 수동 배출 테스트 버튼 */}
+        {connectionStatus === 'connected' && (
+          <button
+            onClick={async () => {
+              const success = await sendDispenseCommand();
+              console.log('Manual dispense:', success);
+            }}
+            className="px-4 py-2 bg-purple-500 text-white rounded-full font-bold text-sm shadow-lg hover:bg-purple-600"
+          >
+            🎴 수동 배출
+          </button>
         )}
 
-        {/* IP 표시 버튼 */}
-        <button
-          onClick={() => {
-            setIpInput(espIp);
-            setShowIpInput(!showIpInput);
-          }}
-          className="px-3 py-2 bg-gray-100 text-gray-600 rounded-full text-xs font-mono"
-        >
-          {espIp}
-        </button>
-
-        {/* 연결 버튼 */}
+        {/* BLE 연결 버튼 */}
         <button
           onClick={connectionStatus === 'connected' ? disconnect : connect}
           disabled={connectionStatus === 'connecting'}
@@ -161,14 +136,18 @@ export default function Home() {
               ? 'bg-green-500 text-white'
               : connectionStatus === 'connecting'
               ? 'bg-yellow-400 text-white animate-pulse'
+              : connectionStatus === 'error'
+              ? 'bg-red-500 text-white hover:bg-red-600'
               : 'bg-blue-500 text-white hover:bg-blue-600'
           }`}
         >
           {connectionStatus === 'connected'
-            ? 'ESP32 연결됨'
+            ? '🔗 BLE 연결됨'
             : connectionStatus === 'connecting'
             ? '연결 중...'
-            : 'ESP32 연결'}
+            : connectionStatus === 'error'
+            ? '❌ 재연결'
+            : '🔌 BLE 연결'}
         </button>
       </div>
 
@@ -185,12 +164,8 @@ export default function Home() {
           <h1 className="text-5xl font-bold text-gray-800 mb-2">포토카드 발급</h1>
           <p className="text-xl text-gray-600 mb-8">Photo Card Kiosk</p>
 
-          <p className="text-2xl text-gray-700 mb-4">
-            바코드를 카메라에 스캔해 주세요
-          </p>
-          <p className="text-lg text-gray-500">
-            please scan the barcode on the camera
-          </p>
+          <p className="text-2xl text-gray-700 mb-4">바코드를 카메라에 스캔해 주세요</p>
+          <p className="text-lg text-gray-500">please scan the barcode on the camera</p>
 
           {/* 스캔된 코드 표시 */}
           {lastCode && (

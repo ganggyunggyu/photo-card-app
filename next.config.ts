@@ -13,15 +13,6 @@ const nextConfig: NextConfig = {
   ],
   devIndicators: false,
   reactStrictMode: false,
-  webpack: (config, { dev }) => {
-    if (dev) {
-      config.watchOptions = {
-        poll: false,
-        aggregateTimeout: 300,
-      };
-    }
-    return config;
-  },
 };
 
 export default nextConfig;

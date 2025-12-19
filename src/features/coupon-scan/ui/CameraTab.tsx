@@ -29,14 +29,15 @@ export function CameraTab({ onScan }: CameraTabProps) {
           return;
         }
 
-        // 후면 카메라 우선 선택 (iOS/Android 바코드 스캔용)
-        const backCamera = videoInputDeviceList.find(
+        // 전면 카메라 우선 선택 (셀카 모드)
+        const frontCamera = videoInputDeviceList.find(
           (device) =>
-            device.label.toLowerCase().includes('back') ||
-            device.label.toLowerCase().includes('rear') ||
-            device.label.includes('후면')
+            device.label.toLowerCase().includes('front') ||
+            device.label.toLowerCase().includes('selfie') ||
+            device.label.includes('전면') ||
+            device.label.includes('facetime')
         );
-        const selectedDeviceId = backCamera?.deviceId || videoInputDeviceList[0].deviceId;
+        const selectedDeviceId = frontCamera?.deviceId || videoInputDeviceList[0].deviceId;
 
         await reader.decodeFromVideoDevice(
           selectedDeviceId,

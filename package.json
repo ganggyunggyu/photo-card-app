@@ -7,6 +7,10 @@
     "dev:https": "next dev --turbopack --experimental-https",
     "build": "next build",
     "start": "next start",
+    "start:https": "next start --experimental-https",
+    "kiosk": "next build && next start --experimental-https",
+    "kiosk:chrome": "./scripts/kiosk.sh",
+    "kiosk:full": "next build && (next start --experimental-https & sleep 3 && ./scripts/kiosk.sh)",
     "lint": "eslint",
     "seed": "tsx scripts/seed.ts"
   },

@@ -5,7 +5,11 @@ import { CameraTab } from '@features/coupon-scan';
 import { StatusBadge } from '@shared/ui';
 import { useESP32 } from '@features/esp-connection';
 import { COUPON_STATUS } from '@shared/lib';
-import type { CouponStatus, TriggerStatus, ValidateResponse } from '@shared/types';
+import type {
+  CouponStatus,
+  TriggerStatus,
+  ValidateResponse,
+} from '@shared/types';
 
 export default function Home() {
   const [lastCode, setLastCode] = useState<string>('');
@@ -13,7 +17,13 @@ export default function Home() {
   const [triggerStatus, setTriggerStatus] = useState<TriggerStatus>('idle');
   const [isLocked, setIsLocked] = useState(false);
 
-  const { connectionStatus, connect, disconnect, sendDispenseCommand, errorMessage } = useESP32();
+  const {
+    connectionStatus,
+    connect,
+    disconnect,
+    sendDispenseCommand,
+    errorMessage,
+  } = useESP32();
 
   // stale closure 방지를 위한 ref
   const connectionStatusRef = useRef(connectionStatus);
@@ -65,7 +75,9 @@ export default function Home() {
         onClick={() => setIsLocked(!isLocked)}
         style={{ zIndex: 99999 }}
         className={`fixed top-4 left-4 px-4 py-2 rounded-full font-bold text-sm shadow-lg transition-all ${
-          isLocked ? 'bg-red-500 text-white' : 'bg-gray-700 text-white hover:bg-gray-800'
+          isLocked
+            ? 'bg-red-500 text-white'
+            : 'bg-gray-700 text-white hover:bg-gray-800'
         }`}
       >
         {isLocked ? '잠금 해제' : '터치 잠금'}
@@ -161,22 +173,33 @@ export default function Home() {
       {/* 하단 - 타이틀 & 안내 & 상태 */}
       <div className="flex-1 flex flex-col items-center justify-center p-8">
         <div className="text-center">
-          <h1 className="text-5xl font-bold text-gray-800 mb-2">포토카드 발급</h1>
+          <h1 className="text-5xl font-bold text-gray-800 mb-2">
+            포토카드 발급
+          </h1>
           <p className="text-xl text-gray-600 mb-8">Photo Card Kiosk</p>
 
-          <p className="text-2xl text-gray-700 mb-4">바코드를 카메라에 스캔해 주세요</p>
-          <p className="text-lg text-gray-500">please scan the barcode on the camera</p>
+          <p className="text-2xl text-gray-700 mb-4">
+            바코드를 카메라에 스캔해 주세요
+          </p>
+          <p className="text-lg text-gray-500">
+            please scan the barcode on the camera
+          </p>
 
           {/* 스캔된 코드 표시 */}
           {lastCode && (
             <div className="mt-8 bg-white/60 px-6 py-3 rounded-full inline-block">
-              <span className="font-mono text-xl text-gray-700">{lastCode}</span>
+              <span className="font-mono text-xl text-gray-700">
+                {lastCode}
+              </span>
             </div>
           )}
 
           {/* 상태 표시 */}
           <div className="mt-8">
-            <StatusBadge couponStatus={couponStatus} triggerStatus={triggerStatus} />
+            <StatusBadge
+              couponStatus={couponStatus}
+              triggerStatus={triggerStatus}
+            />
           </div>
         </div>
       </div>

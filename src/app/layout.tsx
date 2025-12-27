@@ -24,6 +24,7 @@ export const metadata: Metadata = {
   title: "제주버디즈 포토카드 키오스크",
   description: "메이즈랜드 미로에 갇힌 제주버디즈를 구해줘!",
   manifest: "/manifest.json",
+  themeColor: "#a7d8f5",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",

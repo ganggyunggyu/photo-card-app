@@ -83,7 +83,7 @@ export default function Home() {
   const badge = getConnectionBadge();
 
   return (
-    <div className="h-screen w-screen overflow-hidden flex flex-col relative">
+    <div className="h-dvh w-screen overflow-hidden flex flex-col relative">
       {/* 배경 이미지 */}
       <Image
         src="/background.png"

@@ -3,7 +3,7 @@
   "short_name": "PhotoCard",
   "description": "포토카드 발급 키오스크",
   "start_url": "/",
-  "display": "standalone",
+  "display": "fullscreen",
   "orientation": "landscape",
   "background_color": "#e0f2fe",
   "theme_color": "#0ea5e9",

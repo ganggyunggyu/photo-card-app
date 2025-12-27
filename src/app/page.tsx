@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import Image from 'next/image';
 import { CameraTab } from '@features/coupon-scan';
 import { StatusBadge } from '@shared/ui';
 import { useESP32 } from '@features/esp-connection';
@@ -25,7 +26,6 @@ export default function Home() {
     errorMessage,
   } = useESP32();
 
-  // stale closure 방지를 위한 ref
   const connectionStatusRef = useRef(connectionStatus);
   const sendDispenseCommandRef = useRef(sendDispenseCommand);
 
@@ -53,7 +53,6 @@ export default function Home() {
       setCouponStatus(data.status);
 
       if (data.status === COUPON_STATUS.VALID_AND_REDEEMED) {
-        // ref를 통해 항상 최신 connectionStatus 참조
         if (connectionStatusRef.current === 'connected') {
           setTriggerStatus('sending');
           const success = await sendDispenseCommandRef.current();
@@ -68,139 +67,146 @@ export default function Home() {
     }
   }, []);
 
+  const getConnectionBadge = () => {
+    switch (connectionStatus) {
+      case 'connected':
+        return { text: '배출기 연결됨', bg: 'bg-green-500' };
+      case 'connecting':
+        return { text: '배출기 연결중...', bg: 'bg-yellow-500' };
+      case 'error':
+        return { text: '배출기 연결 끊김', bg: 'bg-red-500' };
+      default:
+        return { text: '배출기 연결 끊김', bg: 'bg-red-500' };
+    }
+  };
+
+  const badge = getConnectionBadge();
+
   return (
-    <div className="h-screen w-screen overflow-hidden flex flex-col bg-linear-to-b from-sky-200 via-sky-100 to-emerald-100">
-      {/* 터치 잠금/해제 버튼 - 좌상단 */}
-      <button
-        onClick={() => setIsLocked(!isLocked)}
-        style={{ zIndex: 99999 }}
-        className={`fixed top-4 left-4 px-4 py-2 rounded-full font-bold text-sm shadow-lg transition-all ${
-          isLocked
-            ? 'bg-red-500 text-white'
-            : 'bg-gray-700 text-white hover:bg-gray-800'
-        }`}
-      >
-        {isLocked ? '잠금 해제' : '터치 잠금'}
-      </button>
+    <div className="h-screen w-screen overflow-hidden flex flex-col relative">
+      {/* 배경 이미지 */}
+      <Image
+        src="/background.png"
+        alt="background"
+        fill
+        className="object-cover"
+        priority
+      />
 
-      {/* 터치 잠금 오버레이 */}
-      {isLocked && (
-        <>
-          <div
-            className="fixed top-0 left-40 right-0 h-16 z-9999"
-            onTouchStart={(e) => e.preventDefault()}
-            onTouchMove={(e) => e.preventDefault()}
-            onContextMenu={(e) => e.preventDefault()}
-          />
-          <div
-            className="fixed top-16 left-0 w-[30vw] h-[25vh] z-9999"
-            onTouchStart={(e) => e.preventDefault()}
-            onTouchMove={(e) => e.preventDefault()}
-            onContextMenu={(e) => e.preventDefault()}
-          />
-          <div
-            className="fixed top-16 right-0 w-[30vw] h-[25vh] z-9999"
-            onTouchStart={(e) => e.preventDefault()}
-            onTouchMove={(e) => e.preventDefault()}
-            onContextMenu={(e) => e.preventDefault()}
-          />
-          <div
-            className="fixed top-[calc(4rem+25vh+1rem)] left-0 right-0 bottom-0 z-9999"
-            onTouchStart={(e) => e.preventDefault()}
-            onTouchMove={(e) => e.preventDefault()}
-            onContextMenu={(e) => e.preventDefault()}
-          />
-        </>
-      )}
-
-      {/* ESP32 BLE 연결 영역 - 우상단 */}
-      <div className="absolute top-4 right-4 z-20 flex flex-col items-end gap-2">
-        {/* 연결 상태 표시 */}
-        <div className="text-xs text-gray-500 bg-white/80 px-2 py-1 rounded">
-          상태: {connectionStatus}
-        </div>
-
-        {errorMessage && (
-          <span className="bg-red-100 text-red-600 px-3 py-1.5 rounded-full text-sm max-w-xs text-right">
-            {errorMessage}
-          </span>
-        )}
-
-        {/* 수동 배출 테스트 버튼 */}
-        {connectionStatus === 'connected' && (
-          <button
-            onClick={async () => {
-              const success = await sendDispenseCommand();
-              console.log('Manual dispense:', success);
-            }}
-            className="px-4 py-2 bg-purple-500 text-white rounded-full font-bold text-sm shadow-lg hover:bg-purple-600"
+      {/* 콘텐츠 래퍼 */}
+      <div className="relative z-10 h-full w-full flex flex-col">
+        {/* 터치 잠금/해제 버튼 - 좌상단 */}
+        <button
+          data-lock-button
+          onClick={() => setIsLocked(!isLocked)}
+          style={{ zIndex: 99999 }}
+          className={`fixed top-4 left-4 w-12 h-12 rounded-xl flex items-center justify-center shadow-lg transition-all ${
+            isLocked ? 'bg-red-500' : 'bg-emerald-500'
+          }`}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={2.5}
+            stroke="white"
+            className="w-6 h-6"
           >
-            🎴 수동 배출
-          </button>
-        )}
+            {isLocked ? (
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
+              />
+            ) : (
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
+              />
+            )}
+          </svg>
+        </button>
 
-        {/* BLE 연결 버튼 */}
+        {/* ESP32 상태 뱃지 - 우상단 */}
         <button
           onClick={connectionStatus === 'connected' ? disconnect : connect}
           disabled={connectionStatus === 'connecting'}
-          className={`px-4 py-2 rounded-full font-bold text-sm shadow-lg transition-all ${
-            connectionStatus === 'connected'
-              ? 'bg-green-500 text-white'
-              : connectionStatus === 'connecting'
-              ? 'bg-yellow-400 text-white animate-pulse'
-              : connectionStatus === 'error'
-              ? 'bg-red-500 text-white hover:bg-red-600'
-              : 'bg-blue-500 text-white hover:bg-blue-600'
+          style={{ zIndex: 99999 }}
+          className={`fixed top-4 right-4 px-4 py-2 rounded-lg font-bold text-sm text-white shadow-lg transition-all ${badge.bg} ${
+            connectionStatus === 'connecting' ? 'animate-pulse' : ''
           }`}
         >
-          {connectionStatus === 'connected'
-            ? '🔗 BLE 연결됨'
-            : connectionStatus === 'connecting'
-            ? '연결 중...'
-            : connectionStatus === 'error'
-            ? '❌ 재연결'
-            : '🔌 BLE 연결'}
+          {badge.text}
         </button>
-      </div>
 
-      {/* 상단 - 카메라 */}
-      <div className="pt-16 pb-4 flex justify-center">
-        <div className="w-[40vw] h-[25vh] rounded-2xl overflow-hidden shadow-2xl border-4 border-white/50">
-          <CameraTab onScan={handleScan} />
-        </div>
-      </div>
+        {/* 터치 잠금 오버레이 - 잠금버튼 제외 전체 화면 */}
+        {isLocked && (
+          <div
+            className="fixed inset-0 z-9999"
+            style={{ pointerEvents: 'auto' }}
+            onTouchStart={(e) => {
+              const target = e.target as HTMLElement;
+              const isLockButton = target.closest('[data-lock-button]');
+              if (!isLockButton) {
+                e.preventDefault();
+                e.stopPropagation();
+              }
+            }}
+            onTouchMove={(e) => e.preventDefault()}
+            onContextMenu={(e) => e.preventDefault()}
+          />
+        )}
 
-      {/* 하단 - 타이틀 & 안내 & 상태 */}
-      <div className="flex-1 flex flex-col items-center justify-center p-8">
-        <div className="text-center">
-          <h1 className="text-5xl font-bold text-gray-800 mb-2">
-            포토카드 발급
-          </h1>
-          <p className="text-xl text-gray-600 mb-8">Photo Card Kiosk</p>
+        {/* 메인 영역 - 카메라 + 콘텐츠 중앙보다 약간 아래 */}
+        <div className="flex-1 flex flex-col items-center justify-center gap-10 px-8 pt-32">
+          {/* 카메라 영역 */}
+          <div className="w-100 h-52 rounded-lg overflow-hidden bg-gray-900 shadow-2xl">
+            <CameraTab onScan={handleScan} />
+          </div>
 
-          <p className="text-2xl text-gray-700 mb-4">
-            바코드를 카메라에 스캔해 주세요
-          </p>
-          <p className="text-lg text-gray-500">
-            please scan the barcode on the camera
-          </p>
+          {/* 텍스트 콘텐츠 */}
+          <div className="flex flex-col items-center gap-0">
+            <h1 className="text-4xl font-bold text-gray-800">QR코드 인식</h1>
+            <p className="text-lg text-gray-500">QR Code Recognition</p>
 
-          {/* 스캔된 코드 표시 */}
-          {lastCode && (
-            <div className="mt-8 bg-white/60 px-6 py-3 rounded-full inline-block">
-              <span className="font-mono text-xl text-gray-700">
+            <p className="text-xl font-medium text-gray-800 mt-4">
+              QR코드를 카메라에 바르게 인식시켜 주세요.
+            </p>
+            <p className="text-base text-gray-500">
+              Please align the QR code within the camera frame.
+            </p>
+
+            {lastCode && (
+              <span className="bg-white/80 px-6 py-2 rounded-full font-mono text-lg text-gray-700 shadow mt-3">
                 {lastCode}
               </span>
-            </div>
-          )}
+            )}
 
-          {/* 상태 표시 */}
-          <div className="mt-8">
-            <StatusBadge
-              couponStatus={couponStatus}
-              triggerStatus={triggerStatus}
-            />
+            {errorMessage && (
+              <span className="bg-red-100 text-red-600 px-4 py-2 rounded-full text-sm mt-3">
+                {errorMessage}
+              </span>
+            )}
+
+            <div className="mt-3">
+              <StatusBadge
+                couponStatus={couponStatus}
+                triggerStatus={triggerStatus}
+              />
+            </div>
           </div>
+        </div>
+
+        {/* 하단 로고 */}
+        <div className="w-full flex justify-center pb-10 shrink-0">
+          <Image
+            src="/logo.png"
+            alt="JEJU BUDDIES"
+            width={180}
+            height={50}
+            className="object-contain"
+          />
         </div>
       </div>
     </div>

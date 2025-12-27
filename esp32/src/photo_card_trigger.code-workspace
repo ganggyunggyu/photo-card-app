@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"path": "../photo_card_trigger"
+		},
+		{
+			"name": "esp32",
+			"path": ".."
+		}
+	],
+	"settings": {}
+}

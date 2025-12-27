@@ -16,7 +16,6 @@ export default function Home() {
   const [lastCode, setLastCode] = useState<string>('');
   const [couponStatus, setCouponStatus] = useState<CouponStatus | null>(null);
   const [triggerStatus, setTriggerStatus] = useState<TriggerStatus>('idle');
-  const [isLocked, setIsLocked] = useState(false);
 
   const {
     connectionStatus,
@@ -95,39 +94,6 @@ export default function Home() {
 
       {/* 콘텐츠 래퍼 */}
       <div className="relative z-10 h-full w-full flex flex-col">
-        {/* 터치 잠금/해제 버튼 - 좌상단 */}
-        <button
-          data-lock-button
-          onClick={() => setIsLocked(!isLocked)}
-          style={{ zIndex: 99999 }}
-          className={`fixed top-4 left-4 w-12 h-12 rounded-xl flex items-center justify-center shadow-lg transition-all ${
-            isLocked ? 'bg-red-500' : 'bg-emerald-500'
-          }`}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2.5}
-            stroke="white"
-            className="w-6 h-6"
-          >
-            {isLocked ? (
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
-              />
-            ) : (
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
-              />
-            )}
-          </svg>
-        </button>
-
         {/* ESP32 상태 뱃지 - 우상단 */}
         <button
           onClick={connectionStatus === 'connected' ? disconnect : connect}
@@ -139,24 +105,6 @@ export default function Home() {
         >
           {badge.text}
         </button>
-
-        {/* 터치 잠금 오버레이 - 잠금버튼 제외 전체 화면 */}
-        {isLocked && (
-          <div
-            className="fixed inset-0 z-9999"
-            style={{ pointerEvents: 'auto' }}
-            onTouchStart={(e) => {
-              const target = e.target as HTMLElement;
-              const isLockButton = target.closest('[data-lock-button]');
-              if (!isLockButton) {
-                e.preventDefault();
-                e.stopPropagation();
-              }
-            }}
-            onTouchMove={(e) => e.preventDefault()}
-            onContextMenu={(e) => e.preventDefault()}
-          />
-        )}
 
         {/* 메인 영역 - 카메라 + 콘텐츠 중앙보다 약간 아래 */}
         <div className="flex-1 flex flex-col items-center justify-center gap-10 px-8 pt-32">

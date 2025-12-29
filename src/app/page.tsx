@@ -115,14 +115,14 @@ export default function Home() {
 
           {/* 텍스트 콘텐츠 */}
           <div className="flex flex-col items-center gap-0">
-            <h1 className="text-4xl font-bold text-gray-800">QR코드 인식</h1>
-            <p className="text-lg text-gray-500">QR Code Recognition</p>
+            <h1 className="text-4xl font-bold text-gray-800">바코드 인식</h1>
+            <p className="text-lg text-gray-500">Barcode Recognition</p>
 
             <p className="text-xl font-medium text-gray-800 mt-4">
-              QR코드를 카메라에 바르게 인식시켜 주세요.
+              바코드를 카메라에 바르게 인식시켜 주세요.
             </p>
             <p className="text-base text-gray-500">
-              Please align the QR code within the camera frame.
+              Please align the barcode within the camera frame.
             </p>
 
             {lastCode && (

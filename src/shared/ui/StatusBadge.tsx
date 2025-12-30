@@ -55,6 +55,8 @@ interface StatusConfig {
   lottieUrl: string;
   lottieLoop: boolean;
   accentColor: string;
+  bgColor: string;
+  animation: string;
   title: string;
   subtitle: string;
 }
@@ -67,7 +69,9 @@ export function StatusBadge({ couponStatus, triggerStatus }: StatusBadgeProps) {
       return {
         lottieUrl: LOTTIE_URLS.error,
         lottieLoop: false,
-        accentColor: 'text-red-500',
+        accentColor: 'text-red-600',
+        bgColor: 'bg-red-50 border-red-200',
+        animation: 'animate-pop-in animate-shake',
         title: '유효하지 않은 바코드예요',
         subtitle: '바코드를 다시 확인해주세요',
       };
@@ -77,7 +81,9 @@ export function StatusBadge({ couponStatus, triggerStatus }: StatusBadgeProps) {
       return {
         lottieUrl: LOTTIE_URLS.warning,
         lottieLoop: false,
-        accentColor: 'text-amber-500',
+        accentColor: 'text-amber-600',
+        bgColor: 'bg-amber-50 border-amber-200',
+        animation: 'animate-pop-in',
         title: '이미 사용된 바코드예요',
         subtitle: '다른 바코드를 스캔해주세요',
       };
@@ -88,28 +94,36 @@ export function StatusBadge({ couponStatus, triggerStatus }: StatusBadgeProps) {
         idle: {
           lottieUrl: LOTTIE_URLS.success,
           lottieLoop: false,
-          accentColor: 'text-emerald-500',
+          accentColor: 'text-emerald-600',
+          bgColor: 'bg-emerald-50 border-emerald-200',
+          animation: 'animate-pop-in',
           title: '바코드 확인 완료',
           subtitle: '잠시만 기다려주세요',
         },
         sending: {
           lottieUrl: LOTTIE_URLS.loading,
           lottieLoop: true,
-          accentColor: 'text-blue-500',
+          accentColor: 'text-blue-600',
+          bgColor: 'bg-blue-50 border-blue-200',
+          animation: 'animate-pop-in animate-pulse-glow',
           title: '포토카드 출력 중',
           subtitle: '카드가 곧 나옵니다',
         },
         success: {
           lottieUrl: LOTTIE_URLS.success,
           lottieLoop: false,
-          accentColor: 'text-blue-500',
-          title: '포토카드 발급 완료',
+          accentColor: 'text-emerald-600',
+          bgColor: 'bg-emerald-50 border-emerald-200',
+          animation: 'animate-pop-in',
+          title: '포토카드 발급 완료!',
           subtitle: '아래에서 수령해주세요',
         },
         failed: {
           lottieUrl: LOTTIE_URLS.warning,
           lottieLoop: false,
-          accentColor: 'text-gray-500',
+          accentColor: 'text-gray-600',
+          bgColor: 'bg-gray-50 border-gray-200',
+          animation: 'animate-pop-in animate-shake',
           title: '장치 연결이 필요해요',
           subtitle: '연결 후 다시 스캔해주세요',
         },
@@ -122,15 +136,15 @@ export function StatusBadge({ couponStatus, triggerStatus }: StatusBadgeProps) {
 
   if (!statusConfig) return null;
 
-  const { lottieUrl, lottieLoop, title, subtitle } = statusConfig;
+  const { lottieUrl, lottieLoop, accentColor, bgColor, animation, title, subtitle } = statusConfig;
 
   return (
-    <div className="bg-white rounded-2xl px-10 py-8 shadow-lg animate-fade-in">
-      <div className="mb-5">
-        <LottieAnimation url={lottieUrl} size={80} loop={lottieLoop} />
+    <div className={`rounded-2xl px-8 py-6 border-2 shadow-xl ${bgColor} ${animation}`}>
+      <div className="mb-4">
+        <LottieAnimation url={lottieUrl} size={72} loop={lottieLoop} />
       </div>
-      <p className="text-xl font-semibold text-gray-900 text-center mb-1">{title}</p>
-      <p className="text-base text-gray-500 text-center">{subtitle}</p>
+      <p className={`text-xl font-bold text-center mb-1 ${accentColor}`}>{title}</p>
+      <p className="text-sm text-gray-600 text-center">{subtitle}</p>
     </div>
   );
 }

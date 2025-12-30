@@ -106,48 +106,49 @@ export default function Home() {
           {badge.text}
         </button>
 
-        {/* 메인 영역 - 카메라 + 콘텐츠 중앙보다 약간 아래 */}
-        <div className="flex-1 flex flex-col items-center justify-center gap-10 px-8 pt-32">
+        {/* 메인 영역 */}
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6 py-4 min-h-0">
           {/* 카메라 영역 */}
-          <div className="w-100 h-52 rounded-lg overflow-hidden bg-gray-900 shadow-2xl">
+          <div className="w-80 h-44 rounded-lg overflow-hidden bg-gray-900 shadow-2xl shrink-0">
             <CameraTab onScan={handleScan} />
           </div>
 
           {/* 텍스트 콘텐츠 */}
-          <div className="flex flex-col items-center gap-0">
-            <h1 className="text-4xl font-bold text-gray-800">바코드 인식</h1>
-            <p className="text-lg text-gray-500">Barcode Recognition</p>
+          <div className="flex flex-col items-center shrink-0">
+            <h1 className="text-3xl font-bold text-gray-800">바코드 인식</h1>
+            <p className="text-base text-gray-500">Barcode Recognition</p>
 
-            <p className="text-xl font-medium text-gray-800 mt-4">
+            <p className="text-lg font-medium text-gray-800 mt-2">
               바코드를 카메라에 바르게 인식시켜 주세요.
             </p>
-            <p className="text-base text-gray-500">
+            <p className="text-sm text-gray-500">
               Please align the barcode within the camera frame.
             </p>
+          </div>
 
-            {lastCode && (
-              <span className="bg-white/80 px-6 py-2 rounded-full font-mono text-lg text-gray-700 shadow mt-3">
+          {/* 피드백 영역 - 고정 높이로 레이아웃 시프트 방지 */}
+          <div className="min-h-35 flex flex-col items-center justify-center shrink-0">
+            {lastCode && !couponStatus && (
+              <span className="bg-white/80 px-5 py-2 rounded-full font-mono text-base text-gray-700 shadow">
                 {lastCode}
               </span>
             )}
 
             {errorMessage && (
-              <span className="bg-red-100 text-red-600 px-4 py-2 rounded-full text-sm mt-3">
+              <span className="bg-red-100 text-red-600 px-4 py-2 rounded-full text-sm">
                 {errorMessage}
               </span>
             )}
 
-            <div className="mt-3">
-              <StatusBadge
-                couponStatus={couponStatus}
-                triggerStatus={triggerStatus}
-              />
-            </div>
+            <StatusBadge
+              couponStatus={couponStatus}
+              triggerStatus={triggerStatus}
+            />
           </div>
         </div>
 
         {/* 하단 로고 */}
-        <div className="w-full flex justify-center pb-10 shrink-0">
+        <div className="w-full flex justify-center pb-6 shrink-0">
           <Image
             src="/logo.png"
             alt="JEJU BUDDIES"

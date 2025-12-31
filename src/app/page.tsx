@@ -13,7 +13,6 @@ import type {
 } from '@shared/types';
 
 export default function Home() {
-  const [lastCode, setLastCode] = useState<string>('');
   const [couponStatus, setCouponStatus] = useState<CouponStatus | null>(null);
   const [triggerStatus, setTriggerStatus] = useState<TriggerStatus>('idle');
 
@@ -36,8 +35,20 @@ export default function Home() {
     sendDispenseCommandRef.current = sendDispenseCommand;
   }, [sendDispenseCommand]);
 
+  // 피드백 자동 닫힘 (sending 중에는 닫지 않음)
+  useEffect(() => {
+    if (!couponStatus) return;
+    if (triggerStatus === 'sending') return; // 로딩 중에는 닫지 않음
+
+    const timeout = setTimeout(() => {
+      setCouponStatus(null);
+      setTriggerStatus('idle');
+    }, 3000); // 3초 후 자동 닫힘
+
+    return () => clearTimeout(timeout);
+  }, [couponStatus, triggerStatus]);
+
   const handleScan = useCallback(async (code: string) => {
-    setLastCode(code);
     setCouponStatus(null);
     setTriggerStatus('idle');
 
@@ -81,6 +92,38 @@ export default function Home() {
 
   const badge = getConnectionBadge();
 
+  // 시나리오 테스트 함수들
+  const runScenario = async (scenario: 'success' | 'error' | 'invalid' | 'already_used') => {
+    setCouponStatus(null);
+    setTriggerStatus('idle');
+
+    await new Promise((r) => setTimeout(r, 500));
+
+    switch (scenario) {
+      case 'success':
+        setCouponStatus(COUPON_STATUS.VALID_AND_REDEEMED);
+        setTriggerStatus('sending');
+        await new Promise((r) => setTimeout(r, 1500));
+        setTriggerStatus('success');
+        break;
+
+      case 'error':
+        setCouponStatus(COUPON_STATUS.VALID_AND_REDEEMED);
+        setTriggerStatus('sending');
+        await new Promise((r) => setTimeout(r, 1500));
+        setTriggerStatus('failed');
+        break;
+
+      case 'invalid':
+        setCouponStatus(COUPON_STATUS.INVALID);
+        break;
+
+      case 'already_used':
+        setCouponStatus(COUPON_STATUS.ALREADY_USED);
+        break;
+    }
+  };
+
   return (
     <div className="h-dvh w-screen overflow-hidden flex flex-col relative">
       {/* 배경 이미지 */}
@@ -88,8 +131,10 @@ export default function Home() {
         src="/background.png"
         alt="background"
         fill
-        className="object-cover"
+        className="object-fill"
         priority
+        quality={100}
+        unoptimized
       />
 
       {/* 콘텐츠 래퍼 */}
@@ -126,25 +171,55 @@ export default function Home() {
             </p>
           </div>
 
-          {/* 피드백 영역 - 고정 높이로 레이아웃 시프트 방지 */}
-          <div className="min-h-35 flex flex-col items-center justify-center shrink-0">
-            {lastCode && !couponStatus && (
-              <span className="bg-white/80 px-5 py-2 rounded-full font-mono text-base text-gray-700 shadow">
-                {lastCode}
-              </span>
-            )}
+          {errorMessage && (
+            <span className="bg-red-100 text-red-600 px-4 py-2 rounded-full text-sm">
+              {errorMessage}
+            </span>
+          )}
+        </div>
 
-            {errorMessage && (
-              <span className="bg-red-100 text-red-600 px-4 py-2 rounded-full text-sm">
-                {errorMessage}
-              </span>
-            )}
-
+        {/* 피드백 오버레이 - 화면 중앙 고정, 클릭하면 닫힘 */}
+        {couponStatus && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm cursor-pointer"
+            onClick={() => {
+              setCouponStatus(null);
+              setTriggerStatus('idle');
+            }}
+          >
             <StatusBadge
               couponStatus={couponStatus}
               triggerStatus={triggerStatus}
             />
           </div>
+        )}
+
+        {/* 시나리오 테스트 버튼들 */}
+        <div className="flex flex-wrap justify-center gap-2 px-4 shrink-0">
+          <button
+            onClick={() => runScenario('success')}
+            className="px-3 py-1.5 bg-green-500 text-white text-sm rounded-lg"
+          >
+            성공 시나리오
+          </button>
+          <button
+            onClick={() => runScenario('invalid')}
+            className="px-3 py-1.5 bg-red-500 text-white text-sm rounded-lg"
+          >
+            실패 시나리오
+          </button>
+          <button
+            onClick={() => runScenario('error')}
+            className="px-3 py-1.5 bg-rose-600 text-white text-sm rounded-lg"
+          >
+            에러 시나리오
+          </button>
+          <button
+            onClick={() => runScenario('already_used')}
+            className="px-3 py-1.5 bg-amber-500 text-white text-sm rounded-lg"
+          >
+            사용된 바코드
+          </button>
         </div>
 
         {/* 하단 로고 */}

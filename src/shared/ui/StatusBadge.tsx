@@ -7,7 +7,7 @@ import type { CouponStatus, TriggerStatus } from '../types';
 
 const LOTTIE_URLS = {
   success: 'https://assets-v2.lottiefiles.com/a/3e01ae6c-1163-11ee-beac-afbaeebb6134/amSwsW7OaV.json',
-  sad: 'https://assets-v2.lottiefiles.com/a/c2ecaa9c-1167-11ee-befe-b317925a927a/4vaLjAcCVi.json',
+  error: 'https://assets2.lottiefiles.com/packages/lf20_tl52xzvn.json',
   warning: 'https://assets9.lottiefiles.com/packages/lf20_Tkwjw8.json',
   loading: 'https://assets1.lottiefiles.com/packages/lf20_poqmycwy.json',
 };
@@ -62,7 +62,7 @@ export function StatusBadge({ couponStatus, triggerStatus }: StatusBadgeProps) {
 
     if (couponStatus === COUPON_STATUS.INVALID) {
       return {
-        lottieUrl: LOTTIE_URLS.warning,
+        lottieUrl: LOTTIE_URLS.error,
         lottieLoop: false,
         accentColor: 'text-red-600',
         bgColor: 'bg-red-50 border-red-200',

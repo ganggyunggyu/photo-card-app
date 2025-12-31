@@ -93,7 +93,9 @@ export default function Home() {
   const badge = getConnectionBadge();
 
   // 시나리오 테스트 함수들
-  const runScenario = async (scenario: 'success' | 'error' | 'invalid' | 'already_used') => {
+  const runScenario = async (
+    scenario: 'success' | 'error' | 'invalid' | 'already_used'
+  ) => {
     setCouponStatus(null);
     setTriggerStatus('idle');
 
@@ -144,15 +146,15 @@ export default function Home() {
           onClick={connectionStatus === 'connected' ? disconnect : connect}
           disabled={connectionStatus === 'connecting'}
           style={{ zIndex: 99999 }}
-          className={`fixed top-4 right-4 px-4 py-2 rounded-lg font-bold text-sm text-white shadow-lg transition-all ${badge.bg} ${
-            connectionStatus === 'connecting' ? 'animate-pulse' : ''
-          }`}
+          className={`fixed top-4 right-4 px-4 py-2 rounded-lg font-bold text-sm text-white shadow-lg transition-all ${
+            badge.bg
+          } ${connectionStatus === 'connecting' ? 'animate-pulse' : ''}`}
         >
           {badge.text}
         </button>
 
         {/* 메인 영역 */}
-        <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6 py-4 min-h-0">
+        <div className="flex-1 flex flex-col items-center justify-center gap-6 px-6 pt-60 min-h-0">
           {/* 카메라 영역 */}
           <div className="w-80 h-44 rounded-lg overflow-hidden bg-gray-900 shadow-2xl shrink-0">
             <CameraTab onScan={handleScan} />

@@ -50,10 +50,13 @@ export default function Home() {
     if (!couponStatus) return;
     if (triggerStatus === 'sending') return; // 로딩 중에는 닫지 않음
 
+    // 성공 시 5초, 그 외 3초
+    const duration = triggerStatus === 'success' ? 5000 : 3000;
+
     const timeout = setTimeout(() => {
       setCouponStatus(null);
       setTriggerStatus('idle');
-    }, 3000); // 3초 후 자동 닫힘
+    }, duration);
 
     return () => clearTimeout(timeout);
   }, [couponStatus, triggerStatus]);

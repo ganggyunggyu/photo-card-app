@@ -26,6 +26,8 @@ export default function Home() {
 
   const connectionStatusRef = useRef(connectionStatus);
   const sendDispenseCommandRef = useRef(sendDispenseCommand);
+  const couponStatusRef = useRef(couponStatus);
+  const triggerStatusRef = useRef(triggerStatus);
 
   useEffect(() => {
     connectionStatusRef.current = connectionStatus;
@@ -34,6 +36,14 @@ export default function Home() {
   useEffect(() => {
     sendDispenseCommandRef.current = sendDispenseCommand;
   }, [sendDispenseCommand]);
+
+  useEffect(() => {
+    couponStatusRef.current = couponStatus;
+  }, [couponStatus]);
+
+  useEffect(() => {
+    triggerStatusRef.current = triggerStatus;
+  }, [triggerStatus]);
 
   // 피드백 자동 닫힘 (sending 중에는 닫지 않음)
   useEffect(() => {
@@ -49,6 +59,9 @@ export default function Home() {
   }, [couponStatus, triggerStatus]);
 
   const handleScan = useCallback(async (code: string) => {
+    // 피드백 표시 중이면 스캔 무시
+    if (couponStatusRef.current || triggerStatusRef.current !== 'idle') return;
+
     setCouponStatus(null);
     setTriggerStatus('idle');
 

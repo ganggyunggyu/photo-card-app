@@ -28,6 +28,7 @@ export default function Home() {
   const sendDispenseCommandRef = useRef(sendDispenseCommand);
   const couponStatusRef = useRef(couponStatus);
   const triggerStatusRef = useRef(triggerStatus);
+  const isProcessingRef = useRef(false);
 
   useEffect(() => {
     connectionStatusRef.current = connectionStatus;
@@ -56,14 +57,21 @@ export default function Home() {
     const timeout = setTimeout(() => {
       setCouponStatus(null);
       setTriggerStatus('idle');
+      // 피드백 닫힌 후 2초 쿨다운
+      setTimeout(() => {
+        isProcessingRef.current = false;
+      }, 2000);
     }, duration);
 
     return () => clearTimeout(timeout);
   }, [couponStatus, triggerStatus]);
 
   const handleScan = useCallback(async (code: string) => {
-    // 피드백 표시 중이면 스캔 무시
+    // 처리 중이거나 피드백 표시 중이면 스캔 무시
+    if (isProcessingRef.current) return;
     if (couponStatusRef.current || triggerStatusRef.current !== 'idle') return;
+
+    isProcessingRef.current = true; // 스캔 즉시 잠금
 
     setCouponStatus(null);
     setTriggerStatus('idle');
@@ -203,6 +211,10 @@ export default function Home() {
             onClick={() => {
               setCouponStatus(null);
               setTriggerStatus('idle');
+              // 클릭 닫기 후 2초 쿨다운
+              setTimeout(() => {
+                isProcessingRef.current = false;
+              }, 2000);
             }}
           >
             <StatusBadge

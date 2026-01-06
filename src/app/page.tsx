@@ -15,6 +15,9 @@ import type {
 export default function Home() {
   const [couponStatus, setCouponStatus] = useState<CouponStatus | null>(null);
   const [triggerStatus, setTriggerStatus] = useState<TriggerStatus>('idle');
+  const [isAdminMode, setIsAdminMode] = useState(false);
+  const adminClickCountRef = useRef(0);
+  const adminClickTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const {
     connectionStatus,
@@ -116,6 +119,24 @@ export default function Home() {
 
   const badge = getConnectionBadge();
 
+  const handleAdminTrigger = () => {
+    adminClickCountRef.current += 1;
+
+    if (adminClickTimerRef.current) {
+      clearTimeout(adminClickTimerRef.current);
+    }
+
+    if (adminClickCountRef.current >= 3) {
+      setIsAdminMode((prev) => !prev);
+      adminClickCountRef.current = 0;
+      return;
+    }
+
+    adminClickTimerRef.current = setTimeout(() => {
+      adminClickCountRef.current = 0;
+    }, 1000);
+  };
+
   // 시나리오 테스트 함수들
   const runScenario = async (
     scenario: 'success' | 'error' | 'invalid' | 'already_used'
@@ -163,19 +184,28 @@ export default function Home() {
         unoptimized
       />
 
+      {/* 관리자 모드 트리거 - 좌상단 투명 버튼 */}
+      <button
+        onClick={handleAdminTrigger}
+        className="fixed top-0 left-0 w-[100px] h-[100px] z-[99999] bg-transparent"
+        aria-label="관리자 모드 트리거"
+      />
+
       {/* 콘텐츠 래퍼 */}
       <div className="relative z-10 h-full w-full flex flex-col">
-        {/* ESP32 상태 뱃지 - 우상단 */}
-        <button
-          onClick={connectionStatus === 'connected' ? disconnect : connect}
-          disabled={connectionStatus === 'connecting'}
-          style={{ zIndex: 99999 }}
-          className={`fixed top-4 right-4 px-4 py-2 rounded-lg font-bold text-sm text-white shadow-lg transition-all ${
-            badge.bg
-          } ${connectionStatus === 'connecting' ? 'animate-pulse' : ''}`}
-        >
-          {badge.text}
-        </button>
+        {/* ESP32 상태 뱃지 - 우상단 (관리자 모드에서만 표시) */}
+        {isAdminMode && (
+          <button
+            onClick={connectionStatus === 'connected' ? disconnect : connect}
+            disabled={connectionStatus === 'connecting'}
+            style={{ zIndex: 99999 }}
+            className={`fixed top-4 right-4 px-4 py-2 rounded-lg font-bold text-sm text-white shadow-lg transition-all ${
+              badge.bg
+            } ${connectionStatus === 'connecting' ? 'animate-pulse' : ''}`}
+          >
+            {badge.text}
+          </button>
+        )}
 
         {/* 메인 영역 */}
         <div className="flex-1 flex flex-col items-center justify-center gap-6 px-6 pt-60 min-h-0">
@@ -225,7 +255,7 @@ export default function Home() {
         )}
 
         {/* 시나리오 테스트 버튼들 */}
-        <div className="flex flex-wrap justify-center gap-2 px-4 shrink-0">
+        {/* <div className="flex flex-wrap justify-center gap-2 px-4 shrink-0">
           <button
             onClick={() => runScenario('success')}
             className="px-3 py-1.5 bg-green-500 text-white text-sm rounded-lg"
@@ -250,7 +280,7 @@ export default function Home() {
           >
             사용된 바코드
           </button>
-        </div>
+        </div> */}
 
         {/* 하단 로고 */}
         <div className="w-full flex justify-center pb-6 shrink-0">

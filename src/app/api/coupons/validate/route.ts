@@ -28,9 +28,9 @@ export async function POST(request: NextRequest) {
 
     const normalizedCode = couponNumber.trim();
 
-    // 원자적 업데이트: isUsed=false인 쿠폰을 찾아서 isUsed=true로 변경
+    // 원자적 업데이트: isUsed가 true가 아닌 쿠폰을 찾아서 isUsed=true로 변경
     const updatedCoupon = await Coupon.findOneAndUpdate(
-      { couponNumber: normalizedCode, isUsed: false },
+      { couponNumber: normalizedCode, isUsed: { $ne: true } },
       { $set: { isUsed: true, usedAt: new Date() } },
       { new: true }
     );

@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>Photo Card Test Codes</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 24px; color: #111; }
+    h1 { font-size: 22px; margin: 0 0 8px; }
+    p { margin: 0 0 20px; color: #555; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(260px, 1fr)); gap: 20px; }
+    .card { border: 1px solid #ddd; border-radius: 8px; padding: 16px; break-inside: avoid; }
+    .code { font-size: 20px; font-weight: 700; margin-bottom: 12px; letter-spacing: 1px; }
+    .images { display: grid; grid-template-columns: 140px 1fr; gap: 16px; align-items: center; }
+    .qr { width: 140px; height: 140px; image-rendering: pixelated; }
+    .barcode { width: 100%; max-width: 340px; background: white; }
+    .label { font-size: 12px; color: #666; margin-top: 6px; }
+    @media print { body { margin: 12mm; } .grid { grid-template-columns: repeat(2, 1fr); gap: 10mm; } }
+  </style>
+</head>
+<body>
+  <h1>Photo Card Test Codes</h1>
+  <p>QR과 Code128 바코드 이미지를 같이 제공합니다. 현재 앱 카메라 테스트는 Code128 바코드를 우선 사용하세요.</p>
+  <div class="grid">
+    <div class="card">
+      <div class="code">10000001</div>
+      <div class="images">
+        <div>
+          <img class="qr" src="qr/10000001-qr.png" alt="QR 10000001" />
+          <div class="label">QR</div>
+        </div>
+        <div>
+          <img class="barcode" src="code128-barcode/10000001-code128.png" alt="Code128 10000001" />
+          <div class="label">Code128 barcode</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="code">10000002</div>
+      <div class="images">
+        <div>
+          <img class="qr" src="qr/10000002-qr.png" alt="QR 10000002" />
+          <div class="label">QR</div>
+        </div>
+        <div>
+          <img class="barcode" src="code128-barcode/10000002-code128.png" alt="Code128 10000002" />
+          <div class="label">Code128 barcode</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="code">10000003</div>
+      <div class="images">
+        <div>
+          <img class="qr" src="qr/10000003-qr.png" alt="QR 10000003" />
+          <div class="label">QR</div>
+        </div>
+        <div>
+          <img class="barcode" src="code128-barcode/10000003-code128.png" alt="Code128 10000003" />
+          <div class="label">Code128 barcode</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="code">10000004</div>
+      <div class="images">
+        <div>
+          <img class="qr" src="qr/10000004-qr.png" alt="QR 10000004" />
+          <div class="label">QR</div>
+        </div>
+        <div>
+          <img class="barcode" src="code128-barcode/10000004-code128.png" alt="Code128 10000004" />
+          <div class="label">Code128 barcode</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="code">20000001</div>
+      <div class="images">
+        <div>
+          <img class="qr" src="qr/20000001-qr.png" alt="QR 20000001" />
+          <div class="label">QR</div>
+        </div>
+        <div>
+          <img class="barcode" src="code128-barcode/20000001-code128.png" alt="Code128 20000001" />
+          <div class="label">Code128 barcode</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="code">30000001</div>
+      <div class="images">
+        <div>
+          <img class="qr" src="qr/30000001-qr.png" alt="QR 30000001" />
+          <div class="label">QR</div>
+        </div>
+        <div>
+          <img class="barcode" src="code128-barcode/30000001-code128.png" alt="Code128 30000001" />
+          <div class="label">Code128 barcode</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="code">40000001</div>
+      <div class="images">
+        <div>
+          <img class="qr" src="qr/40000001-qr.png" alt="QR 40000001" />
+          <div class="label">QR</div>
+        </div>
+        <div>
+          <img class="barcode" src="code128-barcode/40000001-code128.png" alt="Code128 40000001" />
+          <div class="label">Code128 barcode</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="code">40050000</div>
+      <div class="images">
+        <div>
+          <img class="qr" src="qr/40050000-qr.png" alt="QR 40050000" />
+          <div class="label">QR</div>
+        </div>
+        <div>
+          <img class="barcode" src="code128-barcode/40050000-code128.png" alt="Code128 40050000" />
+          <div class="label">Code128 barcode</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
